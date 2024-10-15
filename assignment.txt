@@ -1,0 +1,383 @@
+# Task 1: File Management Script
+
+# Write a Bash script thatg
+# - Creates a directory named "backup" in the user's home directory^
+# - Copies all .txt files from the current directory into the "backup" directory^
+# - Appends the current date and time to the filenames of the copied files.
+
+
+# # Ans-- Here’s a Bash script that performs the file management task you outlined:
+#!/bin/bash
+
+# Define the backup directory in the user's home directory
+BACKUP_DIR="$HOME/backup"
+
+# Create the backup directory if it doesn't exist
+if [ ! -d "$BACKUP_DIR" ]; then
+  mkdir "$BACKUP_DIR"
+  echo "Backup directory created at: $BACKUP_DIR"
+else
+  echo "Backup directory already exists."
+fi
+
+# Get the current date and time
+CURRENT_DATE=$(date +"%Y-%m-%d_%H-%M-%S")
+
+# Copy all .txt files from the current directory to the backup directory
+for file in *.txt; do
+  if [ -f "$file" ]; then
+    # Extract the filename without extension
+    FILENAME=$(basename "$file" .txt)
+    # Copy the file with the current date and time appended to the filename
+    cp "$file" "$BACKUP_DIR/${FILENAME}_$CURRENT_DATE.txt"
+    echo "Copied: $file to $BACKUP_DIR/${FILENAME}_$CURRENT_DATE.txt"
+  else
+    echo "No .txt files found in the current directory."
+  fi
+done
+
+
+
+
+
+
+Task 2: System Health Check
+
+Create a script thatg
+- Checks the system’s CPU and memory usage^
+- Reports if the CPU usage is above 80% or if the available memory is below 20%^
+- Logs the results to a file named system_health.log
+
+
+
+
+# Ans-- Here’s a Bash script that performs the system health check you requested:
+
+#!/bin/bash
+
+# Define the log file
+LOG_FILE="$HOME/system_health.log"
+
+# Get the current date and time
+CURRENT_TIME=$(date +"%Y-%m-%d %H:%M:%S")
+
+# Check CPU usage (% of total CPU being used)
+CPU_USAGE=$(top -bn1 | grep "Cpu(s)" | awk '{print 100 - $8}')
+# Check available memory (% of free memory)
+MEMORY_AVAILABLE=$(free | grep Mem | awk '{print $7/$2 * 100.0}')
+
+# Initialize the log entry with the current time
+echo "System Health Check - $CURRENT_TIME" >> "$LOG_FILE"
+
+# Check CPU usage and log if it is above 80%
+if (( $(echo "$CPU_USAGE > 80" | bc -l) )); then
+  echo "Warning: CPU usage is above 80%! Current usage: $CPU_USAGE%" >> "$LOG_FILE"
+else
+  echo "CPU usage is normal. Current usage: $CPU_USAGE%" >> "$LOG_FILE"
+fi
+
+# Check available memory and log if it is below 20%
+if (( $(echo "$MEMORY_AVAILABLE < 20" | bc -l) )); then
+  echo "Warning: Available memory is below 20%! Current available memory: $MEMORY_AVAILABLE%" >> "$LOG_FILE"
+else
+  echo "Memory usage is normal. Current available memory: $MEMORY_AVAILABLE%" >> "$LOG_FILE"
+fi
+
+# Log a separator for better readability
+echo "---------------------------------------" >> "$LOG_FILE"
+
+
+
+
+
+
+
+Task 3: User Account Management
+
+Write a script thatg
+- Reads a list of usernames from a file (e.g., user_list.txt)^
+- Creates a new user for each username^
+- Generates a random password for each user and saves the username and password to a file named 
+credentials.txt.
+
+
+
+# Ans-- Here’s a Bash script that performs the user account management task you requested:
+
+#!/bin/bash
+
+# File containing the list of usernames
+USER_LIST="user_list.txt"
+
+# File to store the generated usernames and passwords
+CREDENTIALS_FILE="credentials.txt"
+
+# Function to generate a random password
+generate_password() {
+  # Generate a random password of 12 characters (you can adjust the length if needed)
+  tr -dc A-Za-z0-9 </dev/urandom | head -c 12
+}
+
+# Clear the credentials file if it exists, or create a new one
+> "$CREDENTIALS_FILE"
+
+# Read each line (username) from the user list file
+while IFS= read -r username; do
+  # Check if the user already exists
+  if id "$username" &>/dev/null; then
+    echo "User $username already exists, skipping."
+  else
+    # Create the new user without a home directory (-M option)
+    sudo useradd -M "$username"
+    echo "User $username created."
+
+    # Generate a random password for the user
+    password=$(generate_password)
+
+    # Set the password for the user
+    echo "$username:$password" | sudo chpasswd
+
+    # Save the username and password to the credentials file
+    echo "Username: $username, Password: $password" >> "$CREDENTIALS_FILE"
+    echo "Credentials for $username saved."
+  fi
+done < "$USER_LIST"
+
+echo "All users processed. Credentials saved to $CREDENTIALS_FILE."
+
+
+
+
+
+
+Task 4: Automated Backup
+
+Create a script thatg
+- Takes a directory path as input from the user^
+- Compresses the directory into a .tar.gz file^
+- Saves the compressed file with a name that includes the current date (e.g., backup_2023-08-20.tar.gz)
+
+
+# Ans-- #!/bin/bash
+
+# Prompt the user for the directory path to back up
+read -p "Enter the directory path to back up: " DIR_PATH
+
+# Check if the provided path is a valid directory
+if [ ! -d "$DIR_PATH" ]; then
+  echo "Error: $DIR_PATH is not a valid directory."
+  exit 1
+fi
+
+# Get the current date in YYYY-MM-DD format
+CURRENT_DATE=$(date +"%Y-%m-%d")
+
+# Define the backup filename with the current date
+BACKUP_FILE="backup_$CURRENT_DATE.tar.gz"
+
+# Compress the directory into a .tar.gz file
+tar -czf "$BACKUP_FILE" -C "$DIR_PATH" .
+
+# Check if the backup was successful
+if [ $? -eq 0 ]; then
+  echo "Backup completed successfully. Saved as $BACKUP_FILE"
+else
+  echo "Error: Backup failed."
+  exit 1
+fi
+
+
+
+
+
+
+
+Task 5: Simple To-Do List
+
+Create a Bash script thatg
+- Implements a simple command-line to-do list^
+- Allows the user to add tasks, view tasks, and remove tasks^
+- Saves the tasks to a file (e.g., todo.txt).
+
+
+
+# Ans-- Here's a Bash script that implements a simple command-line to-do list with the ability to add, view, and remove tasks:
+
+
+#!/bin/bash
+
+# Define the to-do list file
+TODO_FILE="todo.txt"
+
+# Function to add a task
+add_task() {
+  read -p "Enter the task you want to add: " task
+  echo "$task" >> "$TODO_FILE"
+  echo "Task added."
+}
+
+# Function to view tasks
+view_tasks() {
+  if [ ! -s "$TODO_FILE" ]; then
+    echo "No tasks found."
+  else
+    echo "To-Do List:"
+    nl -w 2 -s '. ' "$TODO_FILE" # Display tasks with line numbers
+  fi
+}
+
+# Function to remove a task
+remove_task() {
+  view_tasks
+  read -p "Enter the task number to remove: " task_number
+  if [[ $task_number =~ ^[0-9]+$ ]]; then
+    sed -i "${task_number}d" "$TODO_FILE"
+    echo "Task removed."
+  else
+    echo "Invalid task number."
+  fi
+}
+
+# Main menu
+while true; do
+  echo
+  echo "Simple To-Do List"
+  echo "1. Add Task"
+  echo "2. View Tasks"
+  echo "3. Remove Task"
+  echo "4. Exit"
+  read -p "Choose an option (1-4): " option
+
+  case $option in
+    1)
+      add_task
+      ;;
+    2)
+      view_tasks
+      ;;
+    3)
+      remove_task
+      ;;
+    4)
+      echo "Goodbye!"
+      exit 0
+      ;;
+    *)
+      echo "Invalid option. Please choose between 1 and 4."
+      ;;
+  esac
+done
+
+
+
+
+
+Task 6: Automated Software Installation
+
+Write a script thatg
+- Reads a list of software package names from a file (e.g., packages.txt)^
+- Installs each package using the appropriate package manager (apt, yum, etc.)^
+- Logs the installation status of each packag
+
+
+
+# Ans-- Here’s a Bash script that automates software installation from a list of packages and logs the installation status:
+
+
+#!/bin/bash
+
+# Define the package list file
+PACKAGE_LIST="packages.txt"
+
+# Define the log file
+LOG_FILE="installation_log.txt"
+
+# Check if the package list file exists
+if [ ! -f "$PACKAGE_LIST" ]; then
+  echo "Package list file $PACKAGE_LIST not found!"
+  exit 1
+fi
+
+# Clear the log file if it exists or create a new one
+> "$LOG_FILE"
+
+# Detect the package manager (APT for Debian/Ubuntu, YUM for CentOS/Fedora, etc.)
+if command -v apt &> /dev/null; then
+  PKG_MANAGER="apt"
+elif command -v yum &> /dev/null; then
+  PKG_MANAGER="yum"
+else
+  echo "No supported package manager found (apt, yum)!" >> "$LOG_FILE"
+  exit 1
+fi
+
+# Function to install a package and log its status
+install_package() {
+  package=$1
+  echo "Installing $package..."
+  if sudo $PKG_MANAGER install -y "$package" &> /dev/null; then
+    echo "$package: Installation successful." >> "$LOG_FILE"
+  else
+    echo "$package: Installation failed!" >> "$LOG_FILE"
+  fi
+}
+
+# Read each package from the package list and attempt installation
+while IFS= read -r package; do
+  if [ -n "$package" ]; then
+    install_package "$package"
+  fi
+done < "$PACKAGE_LIST"
+
+echo "Installation process complete. Check $LOG_FILE for details."
+
+
+
+
+
+
+Task 7: Text File Processing
+
+Create a script thatg
+- Takes a text file as input^
+- Counts and displays the number of lines, words, and characters in the file^
+- Finds and displays the longest word in the file.
+
+
+
+# Ans-- This script takes a text file as input and counts the number of lines, words, and characters in the file.
+ It also finds and displays the longest word in the file.
+
+
+ #!/bin/bash
+
+# Check if a file is provided
+if [ "$#" -ne 1 ]; then
+  echo "Usage: $0 filename"
+  exit 1
+fi
+
+# Define the input file
+INPUT_FILE="$1"
+
+# Check if the file exists
+if [ ! -f "$INPUT_FILE" ]; then
+  echo "Error: File $INPUT_FILE does not exist."
+  exit 1
+fi
+
+# Count lines, words, and characters
+LINE_COUNT=$(wc -l < "$INPUT_FILE")
+WORD_COUNT=$(wc -w < "$INPUT_FILE")
+CHAR_COUNT=$(wc -c < "$INPUT_FILE")
+
+# Find the longest word
+LONGEST_WORD=$(tr -c '[:alnum:]' '[\n*]' < "$INPUT_FILE" | awk '{ print length, $0 }' | sort -n -s -r | head -n 1 | cut -d' ' -f2-)
+
+# Display the results
+echo "File: $INPUT_FILE"
+echo "Number of lines: $LINE_COUNT"
+echo "Number of words: $WORD_COUNT"
+echo "Number of characters: $CHAR_COUNT"
+echo "Longest word: $LONGEST_WORD"
+
